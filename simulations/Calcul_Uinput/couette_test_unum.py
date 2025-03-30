@@ -35,26 +35,30 @@ def test():
     print("Détermination de uₙᵤₘ : ")
     
     #---------------------- Paramètres du problème  ------------------------------------- 
-                  
-    rho = 1                 # Masse volumique       [kg/m^3]
-    mu = 1               # Viscosité dynamique   [Ns/m^2]
+    
+    #---------------------- CP1 U*delta*rho / mu = 1800  ------------------------------------- 
+    
+    rho = 1.2                # Masse volumique       [kg/m^3]
+    mu = 1.8e-5               # Viscosité dynamique   [Ns/m^2]
     n_iter = 2000        # Nombre d'itération de l'algorithme simple [-]
-    P = 2        # Pression
+    P = -1e5    # Pression
+    
+    delta = 0.00221    # Demi-largeur du canal 
     
     coeff_data = np.array([rho, mu, n_iter])
     
-    geometry = [0, 5, 0, 1] # Dimension de notre surface de contrôle
+    geometry = [0, 10*delta, 0, 2*delta] # Dimension de notre surface de contrôle
     
-    Nx_values =[6,10,20,40]
+    Nx_values =[100]
     L1 = np.zeros(len(Nx_values))
 
     #---------------------- Conditions aux limites  ------------------------------------- 
     # Implémentation de toutes les fonctions 
     
     y = sp.symbols('y')   
-    unitaire_function = sp.lambdify(y,1)    # Fonction unitaire pour une entrée avec profil plat
+    unitaire_function = sp.lambdify(y,12.2)    # Fonction unitaire pour une entrée avec profil plat
     zero_function = sp.lambdify(y,0)        # Fonction nulle
-    partial_function =  sp.lambdify(y,(1+P)/2-P/3)
+    partial_function =  sp.lambdify(y,(1+P)*2*delta**2-8/3 *P*delta**3)
     #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -      
     #  Conditions aux limites sur les vitesses, on impose :
     #   - DIRICHLET en entrée avec u = constante et v = 0
@@ -100,7 +104,7 @@ def test():
         Ny = Nx // 2  
     
         print(f"Initialisation du maillage avec Nx = {Nx} et Ny = {Ny}...")
-        mesh_parameters_P1C1 = {'mesh_type': 'QUAD', 'Nx': Nx, 'Ny': Ny}
+        mesh_parameters_P1C1 = {'mesh_type': 'QUAD', 'Nx': 10, 'Ny': 20}
         
         mesh_obj_P1C1 = mesher.rectangle(geometry, mesh_parameters_P1C1)
         scheme_P1C1 = "UPWIND"
@@ -124,7 +128,7 @@ def test():
         print("Voir sur le module _Graphes_ les comparaisons du profil de vitesse axial ainsi que du gradient de pression axial à l’approche de la sortie avec la solution analytique pour le cas pleinement développé")
         points_u1 = Plotter1.my_plotter_1D(u1, False)
         plt.plot(points_u1[:,1], points_u1[:,0], 'g', label='Simulation u', marker='o')
-        plt.plot(np.linspace(0,1,50)*(1+P*(1-np.linspace(0,1,50))), np.linspace(0,1,50), 'r', label='Théorie u')
+        #plt.plot(np.linspace(0,2*delta,50)*(1+P*(1-np.linspace(0,2*delta,50))), np.linspace(0,2*delta,50), 'r', label='Théorie u')
         plt.legend()
         plt.xlabel("Vitesse axiale [m/s]")
         plt.ylabel("Position Y [m]")
@@ -155,7 +159,7 @@ def test():
     print("Voir sur le module _Graphes_ la convergence de L1 par rapport au maillage ")
     plt.loglog(L1,Nb_mailles, 'g', label='L1')
     plt.legend()
-    plt.xlabel("Nombre de mailles (Nx * Ny ")
+    plt.xlabel("Nombre de mailles (Nx * Ny) ")
     plt.ylabel("Norme L1")
     plt.title("L1 en fonction ")
     plt.show()
