@@ -30,6 +30,25 @@ Projet_MEC8211_Couette-main/
 ├── requirements.txt    # Dépendances Python
 └── README.md
 ```
+---
+
+## 🔧 Installation
+
+Cloner ce dépôt et installer les dépendances Python nécessaires :
+
+```bash
+git clone https://github.com/ton-utilisateur/Projet_MEC8211_Couette-main.git
+cd Projet_MEC8211_Couette-main
+pip install -r requirements.txt
+```
+
+Alternativement, avec conda :
+
+```bash
+conda create -n mec8211 python=3.10
+conda activate mec8211
+pip install -r requirements.txt
+```
 
 ---
 
