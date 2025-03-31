@@ -1,4 +1,5 @@
 from src.monGradient import MonGradient
+from simulations.verification_mms.mms_definitions import source_mms
 
 import numpy as np
 from scipy.sparse import lil_matrix,csr_matrix
@@ -52,13 +53,14 @@ class Discretisation_Volumes_Finis ():
         i_iter = 0                                      # Indice des itérations de l'algorithme SIMPLE
         div = 1
         
-        source_MMS = np.zeros(n_elements)
+        source_MMS = np.zeros((n_elements, 2))
         elements_coords = self.mesh.elements_coords()
         mu = self.coeff_data[1]
         for i_element in range(n_elements):
             xT, yT = elements_coords[i_element]    
-            source_MMS[i_element] = mu * np.pi**2 * np.sin(np.pi * yT) - np.pi * np.sin(np.pi * xT)
-            
+            fx, fy = source_mms(xT, yT, mu)
+            source_MMS[i_element, 0] = fx
+            source_MMS[i_element, 1] = fy
         while i_iter < n_iter and div > 1e-5 :          # On veut arrêter la boucle si la divergence est inférieure à 1e-5 ou si on a atteint le nombre d'itération maximum
             
             # 3 : Résolution des équations du mouvement pour obtenir u_m et v_m
@@ -67,8 +69,8 @@ class Discretisation_Volumes_Finis ():
             
             for i_element in range(n_elements):                                     # Calcul du terme source dans chaque élément
                 source [i_element] = -self.elements_area[i_element] * grad_pressure[i_element]
-                source [i_element, 0] += source_MMS[i_element]* self.elements_area[i_element]
-            
+                source [i_element, 0] += source_MMS[i_element, 0]* self.elements_area[i_element]
+                source [i_element, 1] += source_MMS[i_element, 1]* self.elements_area[i_element]
             u, v, A = self.calcul_momentum(flow, source)                            # Calcul du momentum avec les flux débitants et le terme source
             
             # 4 : Calcul des flux aux faces f_RC par la méthode de Rhie et Chow.
@@ -487,7 +489,7 @@ def init_face_data(mesh, bc_speed_data, bc_pressure_data):
         bc_type_u = bc_speed_data[tag][0][0]
         bc_value_u = 0
         if bc_type_u == "DIRICHLET":
-            bc_value_u = bc_speed_data[tag][1][0](yA)
+            bc_value_u = bc_speed_data[tag][1][0](xA, yA)
         elif bc_type_u == "NEUMANN":
             bc_value_u = np.dot(bc_speed_data[tag][2][0], normal)
         bc_u[i_face] = (bc_type_u, bc_value_u)              # Type et valeur de condition au limite de la face pour la vitesse u
@@ -496,7 +498,7 @@ def init_face_data(mesh, bc_speed_data, bc_pressure_data):
         bc_type_v = bc_speed_data[tag][0][1]
         bc_value_v = 0
         if bc_type_v == "DIRICHLET":
-            bc_value_v = bc_speed_data[tag][1][1](yA)
+            bc_value_v = bc_speed_data[tag][1][1](xA, yA)
         elif bc_type_v == "NEUMANN":
             bc_value_v = np.dot(bc_speed_data[tag][2][1], normal)
         bc_v[i_face] = (bc_type_v, bc_value_v)              # Type et valeur de condition au limite de la face pour la vitesse v
@@ -505,7 +507,7 @@ def init_face_data(mesh, bc_speed_data, bc_pressure_data):
         bc_type_p = bc_pressure_data[tag][0]
         bc_value_p = 0
         if bc_type_p == "DIRICHLET":
-            bc_value_p = bc_pressure_data[tag][1](xA)
+            bc_value_p = bc_pressure_data[tag][1](xA, yA)
         elif bc_type_p == "NEUMANN":
             bc_value_p = np.dot(bc_pressure_data[tag][2], normal)
         bc_p[i_face] = (bc_type_p, bc_value_p)              # Type et valeur de condition au limite de la face pour la pression p
