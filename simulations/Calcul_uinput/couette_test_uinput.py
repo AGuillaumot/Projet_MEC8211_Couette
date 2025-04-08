@@ -40,18 +40,25 @@ def test():
     
     ''' Initialisation de Re et a '''
     
-    N=250
+    N=100
     
-    Re0 = 1
-    sigma_Re = 0.05  
+    Re0 = 0.5
+    sigma_Re = 0.01  
     a0 = 1
-    sigma_a = 0.05
+    sigma_a = 0.005
     
     
     
     Re_samples = np.random.normal(Re0, sigma_Re,N)
     a_samples = np.random.normal (a0, sigma_a, N)
-    meanU = np.zeros(N)
+    
+                
+    Ny = 10
+    Nx = 20
+    
+    U_y = np.zeros((N,Ny))
+    
+    
     for i,(Re, a) in enumerate(zip(Re_samples, a_samples)):
         
         try :
@@ -72,9 +79,7 @@ def test():
             coeff_data = np.array([rho, mu, n_iter])
             
             geometry = [0, 10*delta, 0, 2*delta] # Dimension de notre surface de contrôle
-            
-            Ny = 10
-            Nx = 20
+
             #---------------------- Conditions aux limites  ------------------------------------- 
             # Implémentation de toutes les fonctions 
             
@@ -164,28 +169,30 @@ def test():
             
             log_time("réaliser le cas 1")
         
-            meanU [i] = np.mean(points_u1[:,1])
+            U_y [i,:] = points_u1[:,1]
             
         except Exception as e:
             print(f"Erreur à Re={Re:.3f}, a={a:.3f} : {e}")
-            meanU[i] = np.nan
+            U_y[i,:] = np.nan
             
     ''' Affichage de la distribution des vitesses moyennes'''
             
-    meanU_valid = meanU[~np.isnan(meanU)]
-    plt.hist(meanU_valid, bins=30, density=True)
-    plt.xlabel("Vitesse moyenne u [m/s]")
-    plt.ylabel("Densité de probabilité")
-    plt.title("Distribution de u_moyen (Monte Carlo sur Re et a)")
-    plt.grid(True)
-    plt.show()
+    U_y_valid= U_y[~np.isnan(U_y).any(axis=1)]
     
-    # Calcul et affichage des statistiques
-    moyenne = np.mean(meanU_valid)
-    ecart_type = np.std(meanU_valid)
-    print(f"\nStatistiques sur u_moyen :")
-    print(f"Moyenne : {moyenne:.5f} m/s")
-    print(f"Écart-type : {ecart_type:.5f} m/s")
+    for j in range (Ny) :
+        plt.hist(U_y_valid[:,j], bins=30, density=True)
+        plt.xlabel(f"Vitesse u [m/s] pour y={j*2*delta/Ny + 0.05:.2f}")
+        plt.ylabel("Densité de probabilité")
+        plt.title(f"Distribution de u (Monte Carlo sur Re et a) pour y={j*2*delta/Ny + 0.05:.2f}")
+        plt.grid(True)
+        plt.show()
+    
+        # Calcul et affichage des statistiques
+        moyenne = np.mean(U_y_valid[:,j])
+        ecart_type = np.std(U_y_valid[:,j])
+        print(f"\nStatistiques sur u pour y = {j*2*delta/Ny+0.05} :")
+        print(f"Moyenne : {moyenne:.5f} m/s")
+        print(f"Écart-type : {ecart_type:.5f} m/s")
         
     return 
 

@@ -38,10 +38,10 @@ def test():
     
     #---------------------- CP1 U*delta*rho / mu = 1800  ------------------------------------- 
     
-    rho = 1               # Masse volumique       [kg/m^3]
+    rho = 1              # Masse volumique       [kg/m^3]
     mu = 1             # Viscosité dynamique   [Ns/m^2]
     n_iter = 2000        # Nombre d'itération de l'algorithme simple [-]
-    P = 3    # Pression
+    P = 1    # Pression
     delta = 0.5    # Demi-largeur du canal 
     
     coeff_data = np.array([rho, mu, n_iter])
@@ -103,7 +103,7 @@ def test():
     
     for Ny in Ny_values :
 
-        Nx = 40 
+        Nx = 20 
     
         print(f"Initialisation du maillage avec Nx = {Nx} et Ny = {Ny}...")
         mesh_parameters_P1C1 = {'mesh_type': 'QUAD', 'Nx': Nx, 'Ny': Ny}
@@ -130,7 +130,7 @@ def test():
         print("Voir sur le module _Graphes_ les comparaisons du profil de vitesse axial ainsi que du gradient de pression axial à l’approche de la sortie avec la solution analytique pour le cas pleinement développé")
         points_u1 = Plotter1.my_plotter_1D(u1, False)
         plt.plot(points_u1[:,1], points_u1[:,0], 'g', label='Simulation u', marker='o')
-        #plt.plot(np.linspace(0,2*delta,50)*(1+P*(1-np.linspace(0,2*delta,50))), np.linspace(0,2*delta,50), 'r', label='Théorie u')
+        plt.plot(np.linspace(0,2*delta,50)*(1+P*(1-np.linspace(0,2*delta,50))), np.linspace(0,2*delta,50), 'r', label='Théorie u')
         plt.legend()
         plt.xlabel("Vitesse axiale [m/s]")
         plt.ylabel("Position Y [m]")
@@ -152,6 +152,9 @@ def test():
         y = points_u1[:,0]
         L1[i] = 1/len(y) * np.sum(np.abs(points_u1[:,1] - y*(1+P*(1-y))))
         
+        print (f"Ordonnée : {y} m")
+        
+        print (f"Vitesse à la sortie : {points_u1[:,1]} m")
         
         meanU [i] = np.mean(points_u1[:,1])
         
