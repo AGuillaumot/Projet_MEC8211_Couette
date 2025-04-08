@@ -38,25 +38,27 @@ def test():
     
     #---------------------- CP1 U*delta*rho / mu = 1800  ------------------------------------- 
     
-    rho = 1.2                # Masse volumique       [kg/m^3]
-    mu = 1.8e-5               # Viscosité dynamique   [Ns/m^2]
+    rho = 1               # Masse volumique       [kg/m^3]
+    mu = 1             # Viscosité dynamique   [Ns/m^2]
     n_iter = 2000        # Nombre d'itération de l'algorithme simple [-]
-    P = -1e5    # Pression
-    
-    delta = 0.00221    # Demi-largeur du canal 
+    P = 3    # Pression
+    delta = 0.5    # Demi-largeur du canal 
     
     coeff_data = np.array([rho, mu, n_iter])
     
     geometry = [0, 10*delta, 0, 2*delta] # Dimension de notre surface de contrôle
     
-    Nx_values =[100]
-    L1 = np.zeros(len(Nx_values))
-
+    Ny_values =[5,10,20]
+    L1 = np.zeros(len(Ny_values))
+    meanU = np.zeros(len(Ny_values))
+    N = len(Ny_values)
+    
+    r = 2
     #---------------------- Conditions aux limites  ------------------------------------- 
     # Implémentation de toutes les fonctions 
     
     y = sp.symbols('y')   
-    unitaire_function = sp.lambdify(y,12.2)    # Fonction unitaire pour une entrée avec profil plat
+    unitaire_function = sp.lambdify(y,1)    # Fonction unitaire pour une entrée avec profil plat
     zero_function = sp.lambdify(y,0)        # Fonction nulle
     partial_function =  sp.lambdify(y,(1+P)*2*delta**2-8/3 *P*delta**3)
     #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -      
@@ -99,12 +101,12 @@ def test():
     
     i = 0
     
-    for Nx in Nx_values :
+    for Ny in Ny_values :
 
-        Ny = Nx // 2  
+        Nx = 40 
     
         print(f"Initialisation du maillage avec Nx = {Nx} et Ny = {Ny}...")
-        mesh_parameters_P1C1 = {'mesh_type': 'QUAD', 'Nx': 10, 'Ny': 20}
+        mesh_parameters_P1C1 = {'mesh_type': 'QUAD', 'Nx': Nx, 'Ny': Ny}
         
         mesh_obj_P1C1 = mesher.rectangle(geometry, mesh_parameters_P1C1)
         scheme_P1C1 = "UPWIND"
@@ -145,16 +147,25 @@ def test():
         
         log_time("réaliser le cas 1")
     
-        print ("Calcul de la norme L1")
+        ''' Calcul de L1 '''
+        
         y = points_u1[:,0]
         L1[i] = 1/len(y) * np.sum(np.abs(points_u1[:,1] - y*(1+P*(1-y))))
-        i += 1
         
-    Nb_mailles = np.zeros(len(Nx_values))
-
-    for i in range (len(Nx_values)) : 
+        
+        meanU [i] = np.mean(points_u1[:,1])
+        
+        print (f"Vitesse moyenne à la sortie : {meanU [i]} m/s")
+        
+        i += 1
     
-        Nb_mailles[i] = 0.5 * Nx_values[i] ** 2
+    ''' Affichage de L1 en fonction du nombre de mailles '''    
+    
+    Nb_mailles = np.zeros(len(Ny_values))
+
+    for j in range (len(Ny_values)) : 
+    
+        Nb_mailles[j] = 0.5 * Ny_values[j] ** 2
     
     print("Voir sur le module _Graphes_ la convergence de L1 par rapport au maillage ")
     plt.loglog(L1,Nb_mailles, 'g', label='L1')
@@ -163,5 +174,18 @@ def test():
     plt.ylabel("Norme L1")
     plt.title("L1 en fonction ")
     plt.show()
+    
+    
+    ''' Calcul de l'ordre de convergence observé ''' 
+    
+    p = np.log((meanU [N-3]- meanU [N-2])/(meanU [N-2] - meanU [N-1])) / np.log(r)
+    print (f"Ordre de convergence observé p : {p}...")
+    
+    
+    ''' Calcul de abs(f2-f1) '''
+    
+    f2f1 = np.abs(meanU [N-2] - meanU [N-1])
+    print (f"abs(f2-f1) : {f2f1} m/s")
+    
     return 
 
