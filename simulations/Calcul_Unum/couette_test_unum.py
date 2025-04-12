@@ -39,9 +39,9 @@ def test():
     #---------------------- CP1 U*delta*rho / mu = 1800  ------------------------------------- 
     
     rho = 1              # Masse volumique       [kg/m^3]
-    mu = 1             # Viscosité dynamique   [Ns/m^2]
+    mu = 0.02             # Viscosité dynamique   [Ns/m^2]
     n_iter = 2000        # Nombre d'itération de l'algorithme simple [-]
-    P = 1    # Pression
+    P = 0.5    # Pression
     delta = 0.5    # Demi-largeur du canal 
     
     coeff_data = np.array([rho, mu, n_iter])
@@ -103,7 +103,7 @@ def test():
     
     for Ny in Ny_values :
 
-        Nx = 20 
+        Nx = 40 
     
         print(f"Initialisation du maillage avec Nx = {Nx} et Ny = {Ny}...")
         mesh_parameters_P1C1 = {'mesh_type': 'QUAD', 'Nx': Nx, 'Ny': Ny}

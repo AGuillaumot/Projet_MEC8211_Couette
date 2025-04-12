@@ -40,12 +40,12 @@ def test():
     
     ''' Initialisation de Re et a '''
     
-    N=100
+    N=500
     
-    Re0 = 0.5
-    sigma_Re = 0.01  
-    a0 = 1
-    sigma_a = 0.005
+    Re0 = 25
+    sigma_Re = 0.5  
+    a0 = 0.01
+    sigma_a = 0.001
     
     
     
@@ -66,7 +66,7 @@ def test():
             ''' Choix arbitraire des autres paramètres '''
             
             rho = 1               # Masse volumique       [kg/m^3]
-            mu = 1             # Viscosité dynamique   [Ns/m^2]
+            mu = 0.02             # Viscosité dynamique   [Ns/m^2]
             n_iter = 2000        # Nombre d'itération de l'algorithme simple [-]
             delta = 0.5    # Demi-largeur du canal 
             
