@@ -1,0 +1,24 @@
+
+Ordre de convergence CENTRE
+
+Pour u :
+Ordre 1 : 1.4628301222346676
+Ordre 2 : 1.7259973461668916
+Ordre inf : 2.0046651393434227
+
+Pour v :
+Ordre 1 : 0.9485595267618386
+Ordre 2 : 0.953382083392751
+Ordre inf : 1.0167448015127936
+
+Ordre de convergence UPWIND
+
+Pour u :
+Ordre 1 : 1.4601190963567305
+Ordre 2 : 1.7239164810230005
+Ordre inf : 2.0045882228259457
+
+Pour v :
+Ordre 1 : 0.9467620782696942
+Ordre 2 : 0.9511075226928525
+Ordre inf : 1.0136687917307796

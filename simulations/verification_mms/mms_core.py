@@ -55,10 +55,13 @@ class Discretisation_Volumes_Finis ():
         
         source_MMS = np.zeros((n_elements, 2))
         elements_coords = self.mesh.elements_coords()
+        
+        rho = self.coeff_data[0]
         mu = self.coeff_data[1]
+        
         for i_element in range(n_elements):
             xT, yT = elements_coords[i_element]    
-            fx, fy = source_mms(xT, yT, mu)
+            fx, fy = source_mms(xT, yT, mu, rho)
             source_MMS[i_element, 0] = fx
             source_MMS[i_element, 1] = fy
         while i_iter < n_iter and div > 1e-5 :          # On veut arrêter la boucle si la divergence est inférieure à 1e-5 ou si on a atteint le nombre d'itération maximum

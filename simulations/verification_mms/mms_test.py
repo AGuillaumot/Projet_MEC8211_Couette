@@ -4,15 +4,34 @@ MEC8211 - Vérification et Validation en modélisation numérique
 Date de création: 2024 - 03 - 29
 Auteur: Alban GUILLAUMOT
 """
-from src import MeshGenerator, MeshConnectivity
+from src import MeshConnectivity, MeshGenerator, MonPlotter
+
 from simulations.verification_mms.mms_core import Discretisation_Volumes_Finis, init_face_data
-from simulations.verification_mms.mms_definitions import u_MMS, v_MMS, p_MMS
+from simulations.verification_mms.mms_definitions import u_MMS, v_MMS, p_MMS, source_mms
 
 import numpy as np
 import matplotlib.pyplot as plt
 import time
+import os
+
 
 def test():
+    # Création d’un nouveau dossier run automatiquement (placé ICI dans test)
+    base_output = "results/resultats_1_MMS"
+    os.makedirs(base_output, exist_ok=True)
+
+    # Générer un ID de run unique
+    run_id = 1
+    while os.path.exists(os.path.join(base_output, f"run_{run_id:03d}")):
+        run_id += 1
+
+    # Créer le dossier du run courant
+    output_folder = os.path.join(base_output, f"run_{run_id:03d}")
+    os.makedirs(output_folder)
+
+    # Créer le sous-dossier pour les graphiques
+    graph_folder = os.path.join(output_folder, "graphs")
+    os.makedirs(graph_folder)
     """
     Fonction pour tester le calcul du champ de vitesse.
 
@@ -39,17 +58,23 @@ def test():
     #---------------------- Paramètres du problème  ------------------------------------- 
                   
     rho = 1                 # Masse volumique       [kg/m^3]
-    mu =  0.01               # Viscosité dynamique   [Ns/m^2]
-    n_iter = 3000        # Nombre d'itération de l'algorithme simple [-]
+    mu =  0.1               # Viscosité dynamique   [Ns/m^2]
+    n_iter = 4000        # Nombre d'itération de l'algorithme simple [-]
+ # --- TEST COHÉRENCE SOURCES MMS ---
+    print("\n🔍 Vérification des sources MMS à quelques points...")
 
+    points_test = [(0.25, 0.25), (0.5, 0.5), (0.75, 0.75)]
+    for x, y in points_test:
+        fx, fy = source_mms(x, y, mu, rho)
+        print(f"  À (x={x:.2f}, y={y:.2f}) : fx = {fx:.3e}, fy = {fy:.3e}")    
     coeff_data = np.array([rho, mu, n_iter])
     
     n_raff = 5
-    r = 1.5
-    Nx_min = 10
-    Ny_min = 5
+    r = 1.3
+    Nx_min = 12
+    Ny_min = 12
     
-    geometry = [0, 5, 0, 1] # Dimension de notre surface de contrôle
+    geometry = [0, 1, 0, 1] # Dimension de notre surface de contrôle
     
     #---------------------- Conditions aux limites  -------------------------------------      
     bc_speed_data = ([['DIRICHLET','DIRICHLET'], [u_MMS, v_MMS], [None, None]],
@@ -57,10 +82,12 @@ def test():
                      [['DIRICHLET','DIRICHLET'], [u_MMS, v_MMS], [None, None]],
                      [['DIRICHLET','DIRICHLET'], [u_MMS, v_MMS], [None, None]])
     
-    bc_pressure_data = (['DIRICHLET', p_MMS, None],
-                        ['DIRICHLET', p_MMS, None],
-                        ['DIRICHLET', p_MMS, None],
-                        ['DIRICHLET', p_MMS, None])
+    bc_pressure_data = (
+        ['DIRICHLET', p_MMS, None],         # INLET (x = 0)
+        ['NEUMANN', None, [0, 0]],          # WALL bas (y = 0)
+        ['NEUMANN', None, [0, 0]],          # OUTLET (x = 5)
+        ['NEUMANN', None, [0, 0]]           # WALL haut (y = 1)
+)
     
     #  Conditions aux limites sur les contours de notre surface de contrôle, on impose :
     #   - INLET à gauche (TAG=0 et x=0) pour une entrée
@@ -80,11 +107,9 @@ def test():
     h = np.zeros(n_raff)
     u_norm_UPWIND = np.zeros((n_raff, 3))
     v_norm_UPWIND = np.zeros((n_raff, 3))
-    p_norm_UPWIND = np.zeros((n_raff, 3))
     
     u_norm_CENTRE = np.zeros((n_raff, 3))
     v_norm_CENTRE = np.zeros((n_raff, 3))
-    p_norm_CENTRE = np.zeros((n_raff, 3))
     
     for i_raff in range(n_raff):
         Nx = round(Nx_min * r**(i_raff))
@@ -92,8 +117,8 @@ def test():
         
         Lx = geometry[1] - geometry[0]  # 5
         Ly = geometry[3] - geometry[2]  # 1
-        hx = Lx / Nx
-        hy = Ly / Ny
+        hx = (Lx / Nx)**0.5
+        hy = (Ly / Ny)**0.5
         h[i_raff] = max(hx, hy)
         
         print("Maillage rectangulaire transfini (nx={},ny={}), éléments QUAD et schéma Upwind \n".format(Nx,Ny))
@@ -116,7 +141,7 @@ def test():
             v_mms[i_element] = v_MMS(xE, yE)
             p_mms[i_element] = p_MMS(xE, yE)
         
-        print("La simulation {} comporte {} éléments !".format(i_raff, n_elements))
+        print("La simulation {} comporte {} éléments !".format(i_raff+1, n_elements))
         
         conec = MeshConnectivity(mesh_obj, verbose= False)
         conec.compute_connectivity() 
@@ -125,39 +150,51 @@ def test():
         UPWIND = Discretisation_Volumes_Finis(mesh_obj, face_data, bc_u, bc_v, bc_p, bc_door_data, coeff_data, scheme_UPWIND, geometry)
         CENTRE = Discretisation_Volumes_Finis(mesh_obj, face_data, bc_u, bc_v, bc_p, bc_door_data, coeff_data, scheme_CENTRE, geometry)
         
+        
         print("\nDébut des itérations de l'algorithme SIMPLE UPWIND")
         u_UPWIND, v_UPWIND, p_UPWIND, grad_p_UPWIND, b_UPWIND = UPWIND.algorithme_simple()  
+        
         print("\nDébut des itérations de l'algorithme SIMPLE CENTRE \n")
         u_CENTRE, v_CENTRE, p_CENTRE, grad_p_CENTRE, b_CENTRE = CENTRE.algorithme_simple()
         
         u_norm_UPWIND [i_raff] = erreur_norm(u_UPWIND, u_mms)
         v_norm_UPWIND [i_raff] = erreur_norm(v_UPWIND, v_mms)
-        p_norm_UPWIND [i_raff] = erreur_norm(p_UPWIND, p_mms)
         
         u_norm_CENTRE [i_raff] = erreur_norm(u_CENTRE, u_mms)
         v_norm_CENTRE [i_raff] = erreur_norm(v_CENTRE, v_mms)
-        p_norm_CENTRE [i_raff] = erreur_norm(p_CENTRE, p_mms)
+        
         log_time("réaliser le cas 1")
-     
-    erreur_print(h, u_norm_CENTRE, u_norm_UPWIND, "u")
-    erreur_print(h, v_norm_CENTRE, v_norm_UPWIND, "v")
-    erreur_print(h, p_norm_CENTRE, p_norm_UPWIND, "p")
     
-    print("\nOrdre de convergence CENTRE")
-    print("\nPour u :")
-    erreur_ordre (h, u_norm_CENTRE, 'CENTRE u', n_raff)
-    print("\nPour v :")
-    erreur_ordre (h, v_norm_CENTRE, 'CENTRE v', n_raff)
-    print("\nPour p :")
-    erreur_ordre (h, p_norm_CENTRE, 'CENTRE p', n_raff)
-    print("\nOrdre de convergence UPWIND")
-    print("\nPour u :")
-    erreur_ordre (h, u_norm_UPWIND, 'UPWIND u', n_raff)
-    print("\nPour v :")
-    erreur_ordre (h, v_norm_UPWIND, 'UPWIND v', n_raff)
-    print("\nPour p :")
-    erreur_ordre (h, p_norm_UPWIND, 'UPWIND p', n_raff)
-
+    erreur_print(h, u_norm_CENTRE, u_norm_UPWIND, "u", graph_folder)
+    erreur_print(h, v_norm_CENTRE, v_norm_UPWIND, "v", graph_folder)
+    log_path = os.path.join(output_folder, "resultats_console.txt")
+    with open(log_path, "w") as f:
+        def print_and_log(*args, **kwargs):
+            print(*args, **kwargs)
+            print(*args, **kwargs, file=f)
+    
+        print_and_log("\nOrdre de convergence CENTRE")
+        print_and_log("\nPour u :")
+        ordre = erreur_ordre(h, u_norm_CENTRE, 'CENTRE u', n_raff)
+        for i, label in enumerate(['1', '2', 'inf']):
+            print_and_log(f"Ordre {label} : {ordre[i]}")
+    
+        print_and_log("\nPour v :")
+        ordre = erreur_ordre(h, v_norm_CENTRE, 'CENTRE v', n_raff)
+        for i, label in enumerate(['1', '2', 'inf']):
+            print_and_log(f"Ordre {label} : {ordre[i]}")
+    
+        print_and_log("\nOrdre de convergence UPWIND")
+        print_and_log("\nPour u :")
+        ordre = erreur_ordre(h, u_norm_UPWIND, 'UPWIND u', n_raff)
+        for i, label in enumerate(['1', '2', 'inf']):
+            print_and_log(f"Ordre {label} : {ordre[i]}")
+    
+        print_and_log("\nPour v :")
+        ordre = erreur_ordre(h, v_norm_UPWIND, 'UPWIND v', n_raff)
+        for i, label in enumerate(['1', '2', 'inf']):
+            print_and_log(f"Ordre {label} : {ordre[i]}")
+    
     return
 def erreur_ordre (h, norm, titre, n_raff):
     
@@ -169,33 +206,34 @@ def erreur_ordre (h, norm, titre, n_raff):
     print("\n La valeur de l'ordre de convergence calculé avec la norme 2 {} est : {}".format(titre, ordre[1]))
     print("\n La valeur de l'ordre de convergence calculé avec la norme infinie {} est : {}".format(titre, ordre[2]))
     
-    return
+    return ordre
 
-def erreur_print(h, CENTRE, UPWIND, val):
+def erreur_print(h, CENTRE, UPWIND, val, graph_folder):
     plt.figure()
-    
+
     # Courbes pour CENTRE
-    plt.plot(h, CENTRE[:,0], 'g', label='Norme inf CENTRE', linestyle='--', marker='+')
-    plt.plot(h, CENTRE[:,1], 'r', label='Norme 1 CENTRE', marker='o')
-    plt.plot(h, CENTRE[:,2], 'b', label='Norme 2 CENTRE')
+    plt.plot(h, CENTRE[:,0], 'g', label='Norme inf CENTRE', linestyle='-.', marker='o')
+    plt.plot(h, CENTRE[:,1], 'r', label='Norme 1 CENTRE', linestyle='--', marker='o')
+    plt.plot(h, CENTRE[:,2], 'b', label='Norme 2 CENTRE', marker='o')
 
     # Courbes pour UPWIND
-    plt.plot(h, UPWIND[:,0], 'c', label='Norme inf UPWIND', linestyle='--', marker='+')
-    plt.plot(h, UPWIND[:,1], 'm', label='Norme 1 UPWIND', marker='o')
+    plt.plot(h, UPWIND[:,0], 'c', label='Norme inf UPWIND',linestyle='-.',)
+    plt.plot(h, UPWIND[:,1], 'm', label='Norme 1 UPWIND', linestyle='--')
     plt.plot(h, UPWIND[:,2], 'y', label='Norme 2 UPWIND')
-    
-    # Échelles log-log
+
     plt.xscale('log')
     plt.yscale('log')
-    
-    # Légendes et mise en page
     plt.legend()
     plt.xlabel("Pas de maillage h (log)")
-    plt.ylabel("Erreur sur {}".format(val))
-    plt.title("Évolution de la norme de l'erreur MMS en échelle log-log ({})".format(val))
+    plt.ylabel(f"Erreur sur {val}")
+    plt.title(f"Évolution de la norme de l'erreur MMS en échelle log-log ({val})")
     plt.grid(True, which='both', linestyle='--', linewidth=0.5)
     plt.tight_layout()
-    plt.show()
+    plt.savefig(os.path.join(graph_folder, f"erreur_{val}.png"))
+    plt.show()  # ← ici pour Spyder
+    plt.close()
+
+
 
 def erreur_norm (theorie, analytique):
     n_elements = len(theorie)
@@ -204,4 +242,7 @@ def erreur_norm (theorie, analytique):
     n_2 = np.sqrt(np.sum(((theorie - analytique)**2)) / n_elements) 
     n_inf = np.max(np.abs(theorie - analytique))
     
-    return np.array([n_inf, n_1, n_2]) 
+    return np.array([n_1, n_2, n_inf]) 
+
+if __name__ == "__main__":
+    test()
