@@ -494,7 +494,7 @@ def init_face_data(mesh, bc_speed_data, bc_pressure_data):
         if bc_type_u == "DIRICHLET":
             bc_value_u = bc_speed_data[tag][1][0](xA, yA)
         elif bc_type_u == "NEUMANN":
-            bc_value_u = np.dot(bc_speed_data[tag][2][0], normal)
+            bc_value_u = np.dot(bc_speed_data[tag][2][0](xA, yA), normal)
         bc_u[i_face] = (bc_type_u, bc_value_u)              # Type et valeur de condition au limite de la face pour la vitesse u
     
         # Remplir bc_v
@@ -503,7 +503,7 @@ def init_face_data(mesh, bc_speed_data, bc_pressure_data):
         if bc_type_v == "DIRICHLET":
             bc_value_v = bc_speed_data[tag][1][1](xA, yA)
         elif bc_type_v == "NEUMANN":
-            bc_value_v = np.dot(bc_speed_data[tag][2][1], normal)
+            bc_value_v = np.dot(bc_speed_data[tag][2][1](xA, yA), normal)
         bc_v[i_face] = (bc_type_v, bc_value_v)              # Type et valeur de condition au limite de la face pour la vitesse v
     
         # Remplir bc_p
@@ -512,7 +512,7 @@ def init_face_data(mesh, bc_speed_data, bc_pressure_data):
         if bc_type_p == "DIRICHLET":
             bc_value_p = bc_pressure_data[tag][1](xA, yA)
         elif bc_type_p == "NEUMANN":
-            bc_value_p = np.dot(bc_pressure_data[tag][2], normal)
+            bc_value_p = np.dot(bc_pressure_data[tag][2](xA, yA), normal)
         bc_p[i_face] = (bc_type_p, bc_value_p)              # Type et valeur de condition au limite de la face pour la pression p
         
     for i_face in range(mesh.get_number_of_boundary_faces(), n_faces):
